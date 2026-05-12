@@ -5,10 +5,11 @@ dotenv.config();
 
 const { Pool } = pg;
 
+// Configuración del pool de conexiones usando la URL de Supabase
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false 
+    rejectUnauthorized: false // Requerido para conexiones seguras con Supabase/Render
   }
 });
 
