@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+jspm_packages/
+
+# Configuración y Secretos
+.env
+
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compilación
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker/
