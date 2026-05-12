@@ -16,3 +16,8 @@ export const pool = new Pool({
 pool.on('connect', () => {
   console.log('Conexión exitosa a la base de datos');
 });
+
+// --- AGREGA ESTA PARTE AL FINAL ---
+export default {
+  query: (text, params) => pool.query(text, params),
+};
