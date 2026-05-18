@@ -13,4 +13,4 @@ const authMiddleware = (req, res, next) => {
   });
 };
 
-export default authMiddleware; // <--- ESTO ES VITAL
+export default authMiddleware;

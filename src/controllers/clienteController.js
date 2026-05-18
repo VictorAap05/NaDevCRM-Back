@@ -1,35 +1,44 @@
 import db from '../config/db.js';
 
-export const getClientes = async (req, res) => {
-    try {
-        // Obtenemos los clientes ordenados por los más recientes
-        const result = await db.query(
-            'SELECT * FROM clientes ORDER BY fecha_creacion DESC'
-        );
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: 'Error al obtener clientes' });
-    }
-};
-
 export const createCliente = async (req, res) => {
     const { cliente, tipo, tipo_identificacion, identificacion } = req.body;
     
-    // El ID del usuario suele venir del token decodificado en el middleware
-    const creado_por = req.user?.id || 'sistema'; 
+    const creado_por = req.user?.id || null; 
 
     try {
         const query = `
             INSERT INTO clientes (cliente, tipo, tipo_identificacion, identificacion, creado_por)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING *;
+            RETURNING id, cliente, tipo, tipo_identificacion, identificacion, fecha_creacion;
         `;
+
         const values = [cliente, tipo, tipo_identificacion, identificacion, creado_por];
         
         const result = await db.query(query, values);
         res.status(201).json(result.rows[0]);
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al guardar el cliente en la base de datos' });
+        console.error("Error al crear cliente:", error);
+        
+        // Atrapamos el error de duplicados (Unique Violation) en PostgreSQL
+        if (error.code === '23505') {
+            return res.status(400).json({ 
+                error: `La identificación ${identificacion} ya se encuentra registrada en el sistema.` 
+            });
+        }
+
+        res.status(500).json({ error: 'Error interno del servidor al registrar el cliente' });
+    }
+};
+
+export const getClientes = async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT id, cliente, tipo, tipo_identificacion, identificacion, fecha_creacion FROM clientes ORDER BY fecha_creacion DESC'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error al obtener clientes:", error);
+        res.status(500).json({ error: 'No se pudo obtener la lista de clientes' });
     }
 };

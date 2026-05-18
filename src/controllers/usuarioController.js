@@ -13,7 +13,6 @@ export const createUsuario = async (req, res) => {
             RETURNING id, nombre, email, rol, cedula, telefono, areas, estado_activo;
         `;
 
-        // MANDAMOS TEXTO PURO (Sin arreglos [])
         const values = [
             nombre, 
             email, 
@@ -29,8 +28,15 @@ export const createUsuario = async (req, res) => {
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
-        console.error("Error al crear usuario:", error.message);
-        res.status(500).json({ error: 'Error al registrar el usuario' });
+        console.error("Error en la BD al crear usuario:", error);
+        
+        if (error.code === '23505') {
+            return res.status(400).json({ 
+                error: 'El correo electrónico o la cédula ya se encuentran registrados.' 
+            });
+        }
+
+        res.status(500).json({ error: 'Error interno del servidor al registrar el usuario' });
     }
 };
 
@@ -41,6 +47,7 @@ export const getUsuarios = async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: 'No se pudo obtener la lista' });
+        console.error("Error al obtener usuarios:", error);
+        res.status(500).json({ error: 'No se pudo obtener la lista de usuarios' });
     }
 };
