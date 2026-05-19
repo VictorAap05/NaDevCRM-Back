@@ -7,6 +7,17 @@ export const createUsuario = async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        await db.query('BEGIN');
+
+        const operador_id = req.user?.id || null;
+        if (operador_id) {
+            await db.query(
+                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
+                [operador_id]
+            );
+        }
+
+        
         const query = `
             INSERT INTO usuarios (nombre, email, password_hash, rol, cedula, telefono, areas, estado_activo)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -25,9 +36,14 @@ export const createUsuario = async (req, res) => {
         ];
         
         const result = await db.query(query, values);
+
+        await db.query('COMMIT');
+
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
+        await db.query('ROLLBACK');
+        
         console.error("Error en la BD al crear usuario:", error);
         
         if (error.code === '23505') {
