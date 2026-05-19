@@ -6,6 +6,15 @@ export const createCliente = async (req, res) => {
     const creado_por = req.user?.id || null; 
 
     try {
+        await db.query('BEGIN');
+
+        if (creado_por) {
+            await db.query(
+                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
+                [creado_por]
+            );
+        }
+        
         const query = `
             INSERT INTO clientes (cliente, tipo, tipo_identificacion, identificacion, creado_por)
             VALUES ($1, $2, $3, $4, $5)
@@ -15,9 +24,11 @@ export const createCliente = async (req, res) => {
         const values = [cliente, tipo, tipo_identificacion, identificacion, creado_por];
         
         const result = await db.query(query, values);
+        await db.query('COMMIT');
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
+        await db.query('ROLLBACK');
         console.error("Error al crear cliente:", error);
         
         // Atrapamos el error de duplicados (Unique Violation) en PostgreSQL
