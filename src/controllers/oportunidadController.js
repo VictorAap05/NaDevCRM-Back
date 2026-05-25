@@ -14,6 +14,7 @@ export const getOportunidades = async (req, res) => {
         res.status(500).json({ 
             error: "Error interno del servidor", 
             message: error.message 
+            //HOLA
         });
     }
 };
@@ -39,7 +40,7 @@ export const createOportunidad = async (req, res) => {
 
     const usuarioActivoId = req.user?.id || creado_por || null;
 
-    let client;
+        let client;
     
     try {
         client = await db.connect();
