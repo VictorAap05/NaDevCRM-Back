@@ -38,7 +38,16 @@ export const createOportunidad = async (req, res) => {
         creado_por
     } = req.body;
 
+    const client = await db.connect();
+
     try {
+        await client.query('BEGIN');
+
+        if (creado_por) {
+            const jwtClaims = JSON.stringify({ sub: creado_por });
+            await client.query(`SELECT set_config('request.jwt.claims', $1, true)`, [jwtClaims]);
+        }
+
         const query = `
             INSERT INTO oportunidad (
                 cliente_id, nombre_contacto, correo_contacto, numero_contacto,
@@ -69,14 +78,23 @@ export const createOportunidad = async (req, res) => {
             creado_por || null
         ];
 
-        const result = await db.query(query, values);
+        // 4. Ejecutamos el query usando el cliente de la transacción
+        const result = await client.query(query, values);
+        
+        // 5. Confirmamos que todo salió bien y guardamos los datos
+        await client.query('COMMIT');
         
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        // 6. Si algo falla (el trigger, el insert, etc.), deshacemos todo
+        await client.query('ROLLBACK');
         console.error("❌ ERROR EN POST OPORTUNIDAD:", error);
         res.status(500).json({ 
             error: "Error interno al guardar la oportunidad", 
             message: error.message 
         });
+    } finally {
+        // 7. Liberamos la conexión para que vuelva al pool
+        client.release();
     }
 };
