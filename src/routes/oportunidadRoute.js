@@ -10,7 +10,7 @@ router.get('/', getOportunidades);
 
 router.post(
     '/', 
-   
+    authMiddleware,
     validacionesCrearOportunidad,
     revisarErroresOportunidad,   
     createOportunidad            
