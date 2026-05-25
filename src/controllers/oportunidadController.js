@@ -2,7 +2,6 @@ import db from '../config/db.js';
 
 export const getOportunidades = async (req, res) => {
     try {
-        // Obtenemos las oportunidades ordenadas por las más recientes
         const result = await db.query(`
             SELECT * FROM oportunidad
             WHERE estado_activo = true 
@@ -38,7 +37,20 @@ export const createOportunidad = async (req, res) => {
         creado_por
     } = req.body;
 
+    // Capturamos el ID del usuario autenticado que viene del token
+    const usuarioActivoId = req.user?.id || creado_por || null;
+
     try {
+        
+        await db.query('BEGIN');
+
+        if (usuarioActivoId) {
+            await db.query(
+                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
+                [usuarioActivoId]
+            );
+        }
+
         const query = `
             INSERT INTO oportunidad (
                 cliente_id, nombre_contacto, correo_contacto, numero_contacto,
@@ -50,7 +62,6 @@ export const createOportunidad = async (req, res) => {
             ) RETURNING *;
         `;
 
-        // Los UUIDs vacíos o strings vacíos se convierten a null para no romper PostgreSQL
         const values = [
             cliente_id,
             nombre_contacto || null,
@@ -66,13 +77,16 @@ export const createOportunidad = async (req, res) => {
             resp_comercial_id || null,
             resp_tecnico_id || null,
             descripcion || null,
-            creado_por || null
+            usuarioActivoId 
         ];
 
         const result = await db.query(query, values);
         
+        await db.query('COMMIT');
+        
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        await db.query('ROLLBACK');
         console.error("❌ ERROR EN POST OPORTUNIDAD:", error);
         res.status(500).json({ 
             error: "Error interno al guardar la oportunidad", 
