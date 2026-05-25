@@ -2,7 +2,6 @@ import db from '../config/db.js';
 
 export const getOportunidades = async (req, res) => {
     try {
-        // Obtenemos las oportunidades ordenadas por las más recientes
         const result = await db.query(`
             SELECT * FROM oportunidad
             WHERE estado_activo = true 
@@ -38,14 +37,18 @@ export const createOportunidad = async (req, res) => {
         creado_por
     } = req.body;
 
-    const client = await db.connect();
+    // Capturamos el ID del usuario autenticado que viene del token
+    const usuarioActivoId = req.user?.id || creado_por || null;
 
     try {
-        await client.query('BEGIN');
+        
+        await db.query('BEGIN');
 
-        if (creado_por) {
-            const jwtClaims = JSON.stringify({ sub: creado_por });
-            await client.query(`SELECT set_config('request.jwt.claims', $1, true)`, [jwtClaims]);
+        if (usuarioActivoId) {
+            await db.query(
+                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
+                [usuarioActivoId]
+            );
         }
 
         const query = `
@@ -59,7 +62,6 @@ export const createOportunidad = async (req, res) => {
             ) RETURNING *;
         `;
 
-        // Los UUIDs vacíos o strings vacíos se convierten a null para no romper PostgreSQL
         const values = [
             cliente_id,
             nombre_contacto || null,
@@ -75,7 +77,7 @@ export const createOportunidad = async (req, res) => {
             resp_comercial_id || null,
             resp_tecnico_id || null,
             descripcion || null,
-            creado_por || null
+            usuarioActivoId 
         ];
 
         // 4. Ejecutamos el query usando el cliente de la transacción
@@ -84,10 +86,11 @@ export const createOportunidad = async (req, res) => {
         // 5. Confirmamos que todo salió bien y guardamos los datos
         await client.query('COMMIT');
         
+        await db.query('COMMIT');
+        
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        // 6. Si algo falla (el trigger, el insert, etc.), deshacemos todo
-        await client.query('ROLLBACK');
+        await db.query('ROLLBACK');
         console.error("❌ ERROR EN POST OPORTUNIDAD:", error);
         res.status(500).json({ 
             error: "Error interno al guardar la oportunidad", 
