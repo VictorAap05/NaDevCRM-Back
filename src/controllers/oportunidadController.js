@@ -80,7 +80,11 @@ export const createOportunidad = async (req, res) => {
             usuarioActivoId 
         ];
 
-        const result = await db.query(query, values);
+        // 4. Ejecutamos el query usando el cliente de la transacción
+        const result = await client.query(query, values);
+        
+        // 5. Confirmamos que todo salió bien y guardamos los datos
+        await client.query('COMMIT');
         
         await db.query('COMMIT');
         
@@ -92,5 +96,8 @@ export const createOportunidad = async (req, res) => {
             error: "Error interno al guardar la oportunidad", 
             message: error.message 
         });
+    } finally {
+        // 7. Liberamos la conexión para que vuelva al pool
+        client.release();
     }
 };
