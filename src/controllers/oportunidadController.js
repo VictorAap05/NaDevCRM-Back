@@ -14,6 +14,7 @@ export const getOportunidades = async (req, res) => {
         res.status(500).json({ 
             error: "Error interno del servidor", 
             message: error.message 
+            //HOLA
         });
     }
 };
@@ -37,15 +38,17 @@ export const createOportunidad = async (req, res) => {
         creado_por
     } = req.body;
 
-    // Capturamos el ID del usuario autenticado que viene del token
     const usuarioActivoId = req.user?.id || creado_por || null;
 
+        let client;
+    
     try {
+        client = await db.connect();
         
-        await db.query('BEGIN');
+        await client.query('BEGIN');
 
         if (usuarioActivoId) {
-            await db.query(
+            await client.query(
                 `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
                 [usuarioActivoId]
             );
@@ -80,24 +83,23 @@ export const createOportunidad = async (req, res) => {
             usuarioActivoId 
         ];
 
-        // 4. Ejecutamos el query usando el cliente de la transacción
         const result = await client.query(query, values);
         
-        // 5. Confirmamos que todo salió bien y guardamos los datos
         await client.query('COMMIT');
-        
-        await db.query('COMMIT');
         
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        await db.query('ROLLBACK');
+        if (client) {
+            await client.query('ROLLBACK');
+        }
         console.error("❌ ERROR EN POST OPORTUNIDAD:", error);
         res.status(500).json({ 
             error: "Error interno al guardar la oportunidad", 
             message: error.message 
         });
     } finally {
-        // 7. Liberamos la conexión para que vuelva al pool
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 };
