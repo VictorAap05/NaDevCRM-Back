@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getClientes, createCliente, updateCliente, deleteCliente } from '../controllers/clienteController.js';
+import { getClientes, createCliente, updateCliente, deleteCliente, reactivarCliente } from '../controllers/clienteController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import { validacionesCrearCliente, validacionesActualizarCliente } from '../middlewares/validarCliente.js';
 import { revisarErrores } from '../middlewares/validarUsuario.js';
@@ -25,6 +25,11 @@ router.put('/:id',
 router.delete('/:id',
     authMiddleware,
     deleteCliente
+);
+
+router.patch('/:id/reactivar',
+    authMiddleware,
+    reactivarCliente
 );
 
 export default router;

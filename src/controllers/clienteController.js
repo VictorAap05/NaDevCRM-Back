@@ -13,9 +13,9 @@ export const createCliente = async (req, res) => {
             );
         }
         const result = await db.query(
-            `INSERT INTO clientes (cliente, tipo, tipo_identificacion, identificacion, creado_por)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, cliente, tipo, tipo_identificacion, identificacion, fecha_creacion;`,
+            `INSERT INTO clientes (cliente, tipo, tipo_identificacion, identificacion, creado_por, estado_activo)
+             VALUES ($1, $2, $3, $4, $5, true)
+             RETURNING id, cliente, tipo, tipo_identificacion, identificacion, estado_activo, fecha_creacion;`,
             [cliente, tipo, tipo_identificacion, identificacion, creado_por]
         );
         await db.query('COMMIT');
@@ -34,8 +34,17 @@ export const createCliente = async (req, res) => {
 
 export const getClientes = async (req, res) => {
     try {
+        const { estado } = req.query;
+
+        let whereClause = '';
+        if (estado === 'activo') whereClause = 'WHERE estado_activo = true';
+        else if (estado === 'inactivo') whereClause = 'WHERE estado_activo = false';
+
         const result = await db.query(
-            'SELECT id, cliente, tipo, tipo_identificacion, identificacion, fecha_creacion FROM clientes ORDER BY fecha_creacion DESC'
+            `SELECT id, cliente, tipo, tipo_identificacion, identificacion, estado_activo, fecha_creacion
+             FROM clientes
+             ${whereClause}
+             ORDER BY fecha_creacion DESC`
         );
         res.json(result.rows);
     } catch (error) {
@@ -51,7 +60,6 @@ export const updateCliente = async (req, res) => {
 
     try {
         await db.query('BEGIN');
-
         if (modificado_por) {
             await db.query(
                 `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
@@ -59,6 +67,7 @@ export const updateCliente = async (req, res) => {
             );
         }
 
+        // CA04.3: Identificación duplicada en OTRO cliente
         const duplicado = await db.query(
             'SELECT id FROM clientes WHERE identificacion = $1 AND id != $2',
             [identificacion, id]
@@ -74,7 +83,7 @@ export const updateCliente = async (req, res) => {
             `UPDATE clientes
              SET cliente = $1, tipo = $2, tipo_identificacion = $3, identificacion = $4
              WHERE id = $5
-             RETURNING id, cliente, tipo, tipo_identificacion, identificacion, fecha_creacion;`,
+             RETURNING id, cliente, tipo, tipo_identificacion, identificacion, estado_activo, fecha_creacion;`,
             [cliente, tipo, tipo_identificacion, identificacion, id]
         );
 
@@ -85,7 +94,6 @@ export const updateCliente = async (req, res) => {
 
         await db.query('COMMIT');
         res.json(result.rows[0]);
-
     } catch (error) {
         await db.query('ROLLBACK');
         console.error('Error al actualizar cliente:', error.message);
@@ -100,36 +108,22 @@ export const updateCliente = async (req, res) => {
 
 export const deleteCliente = async (req, res) => {
     const { id } = req.params;
-    const eliminado_por = req.user?.id || null;
+    const modificado_por = req.user?.id || null;
 
     try {
         await db.query('BEGIN');
-
-        if (eliminado_por) {
+        if (modificado_por) {
             await db.query(
                 `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [eliminado_por]
+                [modificado_por]
             );
         }
 
-        const opsResult = await db.query(
-            'SELECT COUNT(*) AS total FROM oportunidad WHERE cliente_id = $1',
-            [id]
-        );
-        const total = parseInt(opsResult.rows[0].total, 10);
-
-        if (total > 0) {
-            await db.query('ROLLBACK');
-            return res.status(409).json({
-                error: 'No es posible eliminar este cliente porque tiene registros históricos asociados.',
-                sugerencia: `Este cliente tiene ${total} oportunidad(es) vinculada(s). Se recomienda cambiar el estado del cliente a "Inactivo" para preservar la integridad de los datos.`,
-                tieneRegistrosAsociados: true,
-                totalOportunidades: total
-            });
-        }
-
         const result = await db.query(
-            'DELETE FROM clientes WHERE id = $1 RETURNING id, cliente',
+            `UPDATE clientes
+             SET estado_activo = false
+             WHERE id = $1
+             RETURNING id, cliente, estado_activo;`,
             [id]
         );
 
@@ -140,13 +134,50 @@ export const deleteCliente = async (req, res) => {
 
         await db.query('COMMIT');
         res.json({
-            mensaje: `El cliente "${result.rows[0].cliente}" fue eliminado exitosamente.`,
-            eliminado: result.rows[0]
+            mensaje: `El cliente "${result.rows[0].cliente}" fue desactivado exitosamente.`,
+            cliente: result.rows[0]
         });
-
     } catch (error) {
         await db.query('ROLLBACK');
-        console.error('Error al eliminar cliente:', error.message);
-        res.status(500).json({ error: 'Error interno del servidor al eliminar el cliente.' });
+        console.error('Error al desactivar cliente:', error.message);
+        res.status(500).json({ error: 'Error interno del servidor al desactivar el cliente.' });
+    }
+};
+
+export const reactivarCliente = async (req, res) => {
+    const { id } = req.params;
+    const modificado_por = req.user?.id || null;
+
+    try {
+        await db.query('BEGIN');
+        if (modificado_por) {
+            await db.query(
+                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
+                [modificado_por]
+            );
+        }
+
+        const result = await db.query(
+            `UPDATE clientes
+             SET estado_activo = true
+             WHERE id = $1
+             RETURNING id, cliente, estado_activo;`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Cliente no encontrado.' });
+        }
+
+        await db.query('COMMIT');
+        res.json({
+            mensaje: `El cliente "${result.rows[0].cliente}" fue reactivado exitosamente.`,
+            cliente: result.rows[0]
+        });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error al reactivar cliente:', error.message);
+        res.status(500).json({ error: 'Error interno del servidor al reactivar el cliente.' });
     }
 };
