@@ -23,22 +23,31 @@ const validarRUC = (ruc) => {
     return validarCedula(ruc.substring(0, 10));
 };
 
+const reglasIdentificacion = check('identificacion').custom((value, { req }) => {
+    const tipo = req.body.tipo_identificacion;
+
+    if (tipo === 'Cédula' && !validarCedula(value)) {
+        throw new Error('La cédula ingresada no es válida según el algoritmo ecuatoriano.');
+    }
+    if (tipo === 'RUC' && !validarRUC(value)) {
+        throw new Error('El RUC ingresado no es válido (13 dígitos, establecimiento distinto de 000).');
+    }
+    if (tipo === 'Pasaporte' && (!value || value.length < 5)) {
+        throw new Error('El pasaporte debe tener al menos 5 caracteres.');
+    }
+    return true;
+});
+
 export const validacionesCrearCliente = [
     check('cliente', 'El nombre o razón social es obligatorio').notEmpty().trim(),
     check('tipo', 'El tipo de entidad es inválido').isIn(['Público', 'Privado']),
     check('tipo_identificacion', 'El tipo de identificación es inválido').isIn(['Cédula', 'RUC', 'Pasaporte']),
-    check('identificacion').custom((value, { req }) => {
-        const tipo = req.body.tipo_identificacion;
-        
-        if (tipo === 'Cédula' && !validarCedula(value)) {
-            throw new Error('La cédula ingresada no es válida');
-        }
-        if (tipo === 'RUC' && !validarRUC(value)) {
-            throw new Error('El RUC ingresado no es válido');
-        }
-        if (tipo === 'Pasaporte' && (!value || value.length < 5)) {
-            throw new Error('El pasaporte debe tener al menos 5 caracteres');
-        }
-        return true;
-    })
+    reglasIdentificacion,
+];
+
+export const validacionesActualizarCliente = [
+    check('cliente', 'El nombre o razón social es obligatorio').notEmpty().trim(),
+    check('tipo', 'El tipo de entidad es inválido').isIn(['Público', 'Privado']),
+    check('tipo_identificacion', 'El tipo de identificación es inválido').isIn(['Cédula', 'RUC', 'Pasaporte']),
+    reglasIdentificacion,
 ];
