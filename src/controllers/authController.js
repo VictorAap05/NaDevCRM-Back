@@ -32,6 +32,14 @@ export const loginUsuario = async (req, res) => {
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
+    // --------------------------------
+    if (!usuario.estado_activo) {
+      return res.status(403).json({ 
+        message: "Tu cuenta ha sido deshabilitada. Contacta al administrador del sistema." 
+      });
+    }
+    // --------------------------------
+
     const token = jwt.sign(
       { id: usuario.id, rol: usuario.rol },
       process.env.JWT_SECRET,

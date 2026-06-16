@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { getUsuarios, createUsuario } from '../controllers/usuarioController.js';
+import { getUsuarios, createUsuario, updateUsuario, deleteUsuario } from '../controllers/usuarioController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
-import { validacionesCrearUsuario, revisarErrores } from '../middlewares/validarUsuario.js';
+import { validacionesCrearUsuario, validacionesActualizarUsuario, revisarErrores } from '../middlewares/validarUsuario.js';
 
 const router = Router();
 
@@ -13,6 +13,18 @@ router.post('/',
     validacionesCrearUsuario,  
     revisarErrores,            
     createUsuario              
+);
+
+router.put('/:id', 
+    authMiddleware, 
+    validacionesActualizarUsuario, 
+    revisarErrores, 
+    updateUsuario
+);
+
+router.delete('/:id', 
+    authMiddleware, 
+    deleteUsuario
 );
 
 export default router;

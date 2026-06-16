@@ -30,6 +30,19 @@ export const validacionesCrearUsuario = [
     })
 ];
 
+export const validacionesActualizarUsuario = [
+    check('nombre', 'El nombre es obligatorio').notEmpty(),
+    check('email', 'Debe ser un correo electrónico válido').isEmail(),
+    check('telefono', 'El teléfono debe tener 10 dígitos y empezar con 09').matches(/^09\d{8}$/),
+    check('rol', 'El rol es obligatorio').notEmpty(),
+    check('cedula').custom((value) => {
+        if (!validarCedulaEcuatoriana(value)) {
+            throw new Error('La cédula no es válida para el territorio ecuatoriano');
+        }
+        return true;
+    })
+];
+
 export const revisarErrores = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
