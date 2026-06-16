@@ -18,19 +18,50 @@ const validarCedula = (cedula) => {
 
 const validarRUC = (ruc) => {
     if (!ruc || ruc.length !== 13 || !/^\d+$/.test(ruc)) return false;
+
+    const provincia = parseInt(ruc.substring(0, 2));
+    if (provincia < 1 || provincia > 24) return false;
+
+    const tercerDigito = parseInt(ruc[2]);
     const establecimiento = ruc.substring(10, 13);
     if (establecimiento === '000') return false;
-    return validarCedula(ruc.substring(0, 10));
+
+    if (tercerDigito < 6) {
+        return validarCedula(ruc.substring(0, 10));
+    }
+
+    if (tercerDigito === 9) {
+        const coeficientes = [4, 3, 2, 7, 6, 5, 4, 3, 2];
+        let suma = 0;
+        for (let i = 0; i < 9; i++) {
+            suma += parseInt(ruc[i]) * coeficientes[i];
+        }
+        const residuo = suma % 11;
+        const digitoVerificador = residuo === 0 ? 0 : 11 - residuo;
+        return digitoVerificador === parseInt(ruc[9]);
+    }
+
+    if (tercerDigito === 6) {
+        const coeficientes = [3, 2, 7, 6, 5, 4, 3, 2];
+        let suma = 0;
+        for (let i = 0; i < 8; i++) {
+            suma += parseInt(ruc[i]) * coeficientes[i];
+        }
+        const residuo = suma % 11;
+        const digitoVerificador = residuo === 0 ? 0 : 11 - residuo;
+        return digitoVerificador === parseInt(ruc[8]);
+    }
+
+    return false;
 };
 
 const reglasIdentificacion = check('identificacion').custom((value, { req }) => {
     const tipo = req.body.tipo_identificacion;
-
     if (tipo === 'Cédula' && !validarCedula(value)) {
         throw new Error('La cédula ingresada no es válida según el algoritmo ecuatoriano.');
     }
     if (tipo === 'RUC' && !validarRUC(value)) {
-        throw new Error('El RUC ingresado no es válido (13 dígitos, establecimiento distinto de 000).');
+        throw new Error('El RUC ingresado no es válido (persona natural, jurídica o pública).');
     }
     if (tipo === 'Pasaporte' && (!value || value.length < 5)) {
         throw new Error('El pasaporte debe tener al menos 5 caracteres.');

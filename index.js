@@ -14,8 +14,8 @@ const app = express();
 
 const corsOptions = {
     origin: process.env.FRONTEND_URL, 
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'],    // Cabeceras permitidas
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], 
+    allowedHeaders: ['Content-Type', 'Authorization'],   
 };
 app.use(cors(corsOptions));
 app.use(express.json());
