@@ -3,18 +3,28 @@ import db from '../config/db.js';
 // --- DASHBOARD ADMINISTRADOR ---
 export const getAdminDashboardStats = async (req, res) => {
     try {
-        const [usuariosRes, clientesRes, oportunidadesRes, areasRes] = await Promise.all([
+        const [usuariosRes, clientesRes, oportunidadesRes, areasRes, auditoriaRes] = await Promise.all([
             db.query('SELECT COUNT(*)::int as count FROM usuarios WHERE estado_activo = true;'),
             db.query('SELECT COUNT(*)::int as count FROM clientes WHERE estado_activo = true;'),
             db.query('SELECT COUNT(*)::int as count FROM oportunidad;'),
-            db.query('SELECT COUNT(*)::int as count FROM areas;')
+            db.query('SELECT COUNT(*)::int as count FROM areas;'),
+            
+            // Nueva consulta: Trae los últimos 6 registros de auditoría cruzando con usuarios
+            db.query(`
+                SELECT a.id, a.action, a.table_name, a.created_at, u.nombre as usuario_nombre
+                FROM audit_logs a
+                LEFT JOIN usuarios u ON a.changed_by = u.id
+                ORDER BY a.created_at DESC
+                LIMIT 6;
+            `)
         ]);
 
         res.json({
             usuariosActivos: usuariosRes.rows[0].count,
             clientesActivos: clientesRes.rows[0].count,
             totalOportunidades: oportunidadesRes.rows[0].count,
-            numeroAreas: areasRes.rows[0].count
+            numeroAreas: areasRes.rows[0].count,
+            ultimosCambios: auditoriaRes.rows // Enviamos la tabla de auditoría al frontend
         });
     } catch (error) {
         console.error('Error al obtener estadísticas del administrador:', error.message);
