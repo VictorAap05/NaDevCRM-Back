@@ -2,11 +2,33 @@ import db from '../config/db.js';
 
 export const getOportunidades = async (req, res) => {
     try {
-        const result = await db.query(`
+        const userId = req.user?.id;
+        const userRol = req.user?.rol;
+
+        // Consulta por defecto (Administradores y otros roles ven todo)
+        let queryStr = `
             SELECT * FROM oportunidad
             WHERE estado_activo = true 
             ORDER BY fecha_creacion DESC
-        `);
+        `;
+        let queryParams = [];
+
+        // Si es Jefe de Área, filtramos las oportunidades por su área asignada
+        if (userRol === 'Jefe de Area') {
+            const jefeInfo = await db.query('SELECT areas FROM usuarios WHERE id = $1', [userId]);
+            const areaAsignada = jefeInfo.rows[0]?.areas;
+
+            queryStr = `
+                SELECT o.* 
+                FROM oportunidad o
+                JOIN usuarios u ON o.creado_por = u.id
+                WHERE o.estado_activo = true AND u.areas = $1
+                ORDER BY o.fecha_creacion DESC
+            `;
+            queryParams = [areaAsignada];
+        }
+
+        const result = await db.query(queryStr, queryParams);
         
         res.status(200).json(result.rows);
     } catch (error) {
@@ -14,7 +36,6 @@ export const getOportunidades = async (req, res) => {
         res.status(500).json({ 
             error: "Error interno del servidor", 
             message: error.message 
-            //HOLA
         });
     }
 };
