@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { setJwtClaim } from '../utils/dbContext.js';
 
 export const createCliente = async (req, res) => {
     const { cliente, tipo, tipo_identificacion, identificacion } = req.body;
@@ -6,12 +7,7 @@ export const createCliente = async (req, res) => {
 
     try {
         await db.query('BEGIN');
-        if (creado_por) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [creado_por]
-            );
-        }
+        await setJwtClaim(db, creado_por);
         const result = await db.query(
             `INSERT INTO clientes (cliente, tipo, tipo_identificacion, identificacion, creado_por, estado_activo)
              VALUES ($1, $2, $3, $4, $5, true)
@@ -60,12 +56,7 @@ export const updateCliente = async (req, res) => {
 
     try {
         await db.query('BEGIN');
-        if (modificado_por) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [modificado_por]
-            );
-        }
+        await setJwtClaim(db, modificado_por);
 
         // CA04.3: Identificación duplicada en OTRO cliente
         const duplicado = await db.query(
@@ -112,12 +103,7 @@ export const deleteCliente = async (req, res) => {
 
     try {
         await db.query('BEGIN');
-        if (modificado_por) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [modificado_por]
-            );
-        }
+        await setJwtClaim(db, modificado_por);
 
         const result = await db.query(
             `UPDATE clientes
@@ -150,12 +136,7 @@ export const reactivarCliente = async (req, res) => {
 
     try {
         await db.query('BEGIN');
-        if (modificado_por) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [modificado_por]
-            );
-        }
+        await setJwtClaim(db, modificado_por);
 
         const result = await db.query(
             `UPDATE clientes

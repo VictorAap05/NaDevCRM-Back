@@ -1,0 +1,5 @@
+# crear .dockerignore
+node_modules
+.env
+.git
+npm-debug.log

@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { setJwtClaim } from '../utils/dbContext.js';
 import bcrypt from 'bcryptjs';
 
 export const createUsuario = async (req, res) => {
@@ -10,12 +11,7 @@ export const createUsuario = async (req, res) => {
         await db.query('BEGIN');
 
         const operador_id = req.user?.id || null;
-        if (operador_id) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
-                [operador_id]
-            );
-        }
+        await setJwtClaim(db, operador_id);
 
         
         const query = `
@@ -77,12 +73,7 @@ export const updateUsuario = async (req, res) => {
     try {
         await db.query('BEGIN');
 
-        if (operador_id) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
-                [operador_id]
-            );
-        }
+        await setJwtClaim(db, operador_id);
 
         const query = `
             UPDATE usuarios 
@@ -136,12 +127,7 @@ export const deleteUsuario = async (req, res) => {
     try {
         await db.query('BEGIN');
 
-        if (operador_id) {
-            await db.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`, 
-                [operador_id]
-            );
-        }
+        await setJwtClaim(db, operador_id);
 
         const query = `
             UPDATE usuarios 

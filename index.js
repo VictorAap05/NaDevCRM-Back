@@ -11,6 +11,7 @@ import dashboardRoutes from './src/routes/dashboardRoute.js';
 
 dotenv.config();
 const app = express();
+app.disable('x-powered-by');
 
 const corsOptions = {
     origin: process.env.FRONTEND_URL, 

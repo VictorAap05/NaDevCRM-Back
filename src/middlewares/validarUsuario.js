@@ -1,19 +1,19 @@
 import { check, validationResult } from 'express-validator';
 
-const validarCedulaEcuatoriana = (cedula) => {
+export const validarCedulaEcuatoriana = (cedula) => {
     if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) return false;
-    const provincia = parseInt(cedula.substring(0, 2));
+    const provincia = Number.parseInt(cedula.substring(0, 2));
     if (provincia < 1 || provincia > 24) return false;
-    const digitoRegion = parseInt(cedula[2]);
+    const digitoRegion = Number.parseInt(cedula[2]);
     if (digitoRegion >= 6) return false;
 
     let suma = 0;
     for (let i = 0; i < 9; i++) {
-        const mult = parseInt(cedula[i]) * (i % 2 === 0 ? 2 : 1);
+        const mult = Number.parseInt(cedula[i]) * (i % 2 === 0 ? 2 : 1);
         suma += mult > 9 ? mult - 9 : mult;
     }
     const digitoVerificador = (suma % 10 === 0) ? 0 : 10 - (suma % 10);
-    return digitoVerificador === parseInt(cedula[9]);
+    return digitoVerificador === Number.parseInt(cedula[9]);
 };
 
 export const validacionesCrearUsuario = [

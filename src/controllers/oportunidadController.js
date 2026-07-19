@@ -1,8 +1,9 @@
 import db from '../config/db.js';
+import { ROL_ADMINISTRADOR, ROL_JEFE_DE_AREA, setJwtClaim, obtenerAreaDeUsuario } from '../utils/dbContext.js';
 
 // ─── Helper: determina si un usuario puede editar una oportunidad dada ───
-const puedeEditar = (oportunidad, userId, userRol) => {
-    if (userRol === 'Administrador') return true;
+export const puedeEditar = (oportunidad, userId, userRol) => {
+    if (userRol === ROL_ADMINISTRADOR) return true;
 
     const esCreador = oportunidad.creado_por === userId;
     const esRespComercial = oportunidad.resp_comercial_id === userId;
@@ -23,13 +24,12 @@ export const getOportunidades = async (req, res) => {
         `;
         let queryParams = [];
 
-        if (userRol === 'Administrador') {
-            // Ve todo, sin filtro adicional
+        if (userRol === ROL_ADMINISTRADOR) {
+            // Acceso sin restricciones adicionales
 
-        } else if (userRol === 'Jefe de Area') {
+        } else if (userRol === ROL_JEFE_DE_AREA) {
             // Ve todas las oportunidades creadas por usuarios de su misma área
-            const jefeInfo = await db.query('SELECT areas FROM usuarios WHERE id = $1', [userId]);
-            const areaAsignada = jefeInfo.rows[0]?.areas;
+            const areaAsignada = await obtenerAreaDeUsuario(db, userId);
 
             queryStr = `
                 SELECT o.* 
@@ -84,16 +84,14 @@ export const getOportunidadById = async (req, res) => {
         const oportunidad = result.rows[0];
 
         // Verificar visibilidad según rol
-        if (userRol === 'Jefe de Area') {
-            const jefeInfo = await db.query('SELECT areas FROM usuarios WHERE id = $1', [userId]);
-            const areaAsignada = jefeInfo.rows[0]?.areas;
-            const creadorInfo = await db.query('SELECT areas FROM usuarios WHERE id = $1', [oportunidad.creado_por]);
-            const areaCreador = creadorInfo.rows[0]?.areas;
+        if (userRol === ROL_JEFE_DE_AREA) {
+            const areaAsignada = await obtenerAreaDeUsuario(db, userId);
+            const areaCreador = await obtenerAreaDeUsuario(db, oportunidad.creado_por);
 
             if (areaCreador !== areaAsignada) {
                 return res.status(403).json({ error: 'No tienes permiso para ver esta oportunidad.' });
             }
-        } else if (userRol !== 'Administrador') {
+        } else if (userRol !== ROL_ADMINISTRADOR) {
             const esCreador = oportunidad.creado_por === userId;
             const esRespComercial = oportunidad.resp_comercial_id === userId;
             const esRespTecnico = oportunidad.resp_tecnico_id === userId;
@@ -140,12 +138,7 @@ export const createOportunidad = async (req, res) => {
         client = await db.connect();
         await client.query('BEGIN');
 
-        if (usuarioActivoId) {
-            await client.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [usuarioActivoId]
-            );
-        }
+        await setJwtClaim(client, usuarioActivoId);
 
         const query = `
             INSERT INTO oportunidad (
@@ -240,12 +233,7 @@ export const updateOportunidad = async (req, res) => {
         }
 
         // 3. Setear usuario para auditoría
-        if (userId) {
-            await client.query(
-                `SELECT set_config('request.jwt.claims', json_build_object('sub', $1::text)::text, true)`,
-                [userId]
-            );
-        }
+        await setJwtClaim(client, userId);
 
         // 4. Actualizar
         const query = `

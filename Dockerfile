@@ -1,7 +1,9 @@
 FROM node:20-slim
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 COPY . .
-EXPOSE 3000 
-CMD ["npm", "run", "dev"]
+RUN addgroup --system app && adduser --system --ingroup app app
+USER app
+EXPOSE 3000
+CMD ["npm", "run", "start"]

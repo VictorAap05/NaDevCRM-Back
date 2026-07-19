@@ -5,9 +5,10 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getAreas); 
+router.get('/', authMiddleware, getAreas); 
 router.post(
-    '/', 
+    '/',
+    authMiddleware, 
     validacionesCrearArea, 
     revisarErroresArea,    
     createArea             

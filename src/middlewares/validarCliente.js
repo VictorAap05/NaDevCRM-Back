@@ -1,28 +1,28 @@
 import { check } from 'express-validator';
 
-const validarCedula = (cedula) => {
-    if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) return false;
-    const provincia = parseInt(cedula.substring(0, 2));
+export const validarCedula = (cedula) => {
+    if (cedula?.length !== 10 || !/^\d+$/.test(cedula)) return false;
+    const provincia = Number.parseInt(cedula.substring(0, 2));
     if (provincia < 1 || provincia > 24) return false;
-    const digitoRegion = parseInt(cedula[2]);
+    const digitoRegion = Number.parseInt(cedula[2]);
     if (digitoRegion >= 6) return false;
 
     let suma = 0;
     for (let i = 0; i < 9; i++) {
-        const mult = parseInt(cedula[i]) * (i % 2 === 0 ? 2 : 1);
+        const mult = Number.parseInt(cedula[i]) * (i % 2 === 0 ? 2 : 1);
         suma += mult > 9 ? mult - 9 : mult;
     }
     const digitoVerificador = (suma % 10 === 0) ? 0 : 10 - (suma % 10);
-    return digitoVerificador === parseInt(cedula[9]);
+    return digitoVerificador === Number.parseInt(cedula[9]);
 };
 
-const validarRUC = (ruc) => {
+export const validarRUC = (ruc) => {
     if (!ruc || ruc.length !== 13 || !/^\d+$/.test(ruc)) return false;
 
-    const provincia = parseInt(ruc.substring(0, 2));
+    const provincia = Number.parseInt(ruc.substring(0, 2));
     if (provincia < 1 || provincia > 24) return false;
 
-    const tercerDigito = parseInt(ruc[2]);
+    const tercerDigito = Number.parseInt(ruc[2]);
     const establecimiento = ruc.substring(10, 13);
     if (establecimiento === '000') return false;
 
@@ -34,22 +34,22 @@ const validarRUC = (ruc) => {
         const coeficientes = [4, 3, 2, 7, 6, 5, 4, 3, 2];
         let suma = 0;
         for (let i = 0; i < 9; i++) {
-            suma += parseInt(ruc[i]) * coeficientes[i];
+            suma += Number.parseInt(ruc[i]) * coeficientes[i];
         }
         const residuo = suma % 11;
         const digitoVerificador = residuo === 0 ? 0 : 11 - residuo;
-        return digitoVerificador === parseInt(ruc[9]);
+        return digitoVerificador === Number.parseInt(ruc[9]);
     }
 
     if (tercerDigito === 6) {
         const coeficientes = [3, 2, 7, 6, 5, 4, 3, 2];
         let suma = 0;
         for (let i = 0; i < 8; i++) {
-            suma += parseInt(ruc[i]) * coeficientes[i];
+            suma += Number.parseInt(ruc[i]) * coeficientes[i];
         }
         const residuo = suma % 11;
         const digitoVerificador = residuo === 0 ? 0 : 11 - residuo;
-        return digitoVerificador === parseInt(ruc[8]);
+        return digitoVerificador === Number.parseInt(ruc[8]);
     }
 
     return false;

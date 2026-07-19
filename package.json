@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --experimental-test-module-mocks --test \"tests/**/*.test.js\"",
+    "test:coverage": "mkdir -p coverage && node --experimental-test-module-mocks --experimental-test-coverage --test-coverage-include=\"src/**/*.js\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test \"tests/**/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

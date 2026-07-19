@@ -21,5 +21,8 @@ build/
 *.swp
 *.swo
 
+# Coverage
+coverage/
+
 # Docker
 .docker/
